@@ -38,13 +38,24 @@ export default class Scheduler{
     }
 
     entropy(instance) {
+        this.errors.push(instance);
         if(this.errors.length === this.maxChunkSize) {
             this.send(this.errors.splice(0, this.maxChunkSize));
         }
-        this.errors.push(instance);
     }
-    send() {
+    send(errors) {
+        let obj = {
+                data : errors
+            },
+            http = new XMLHttpRequest(),
+            url = this.loggingUrl;
 
+        http.open("POST", url, true);
+
+        //Send the proper header information along with the request
+        http.setRequestHeader("Content-type", "application/json");
+
+        http.send(JSON.stringify(obj));
     }
     error(stackInfo, options) {
         let instance = factory.getInstance(stackInfo, options);

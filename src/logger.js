@@ -57,7 +57,9 @@ export default class Logger{
 
     subscribeAjaxRequest() {
         var self = this;
-        events.on('error', this._handleAjaxErrors);
+        events.on('error', (error) => {
+            this._handleAjaxErrors(error);
+        });
         if ('XMLHttpRequest' in this.window) {
             let xhrproto = XMLHttpRequest.prototype;
             fill(xhrproto, 'open', function(origOpen) {
@@ -123,36 +125,19 @@ export default class Logger{
     }
     _handleAjaxErrors(error) {
         let status = error.status_code,
-            type = /4\d{2}/.test(status) ? '4xx' : /5\d{2}/.test(status) ? '5xx' : '';
+            type = /4\d{2}/.test(status) ? '4xx' : /5\d{2}/.test(status) ? '5xx' : '5xx';
+        error.name = type;
+        this.scheduler.error(error);
     }
     captureError(ex, options) {
-        // If not an Error is passed through, recall as a message instead
-/*
-        if (!isError(ex)) {
-            return this.captureMessage(ex, objectMerge({
-                trimHeadFrames: 1,
-                stacktrace: true // if we fall back to captureMessage, default to attempting a new trace
-            }, options));
-        }
-*/
-
-        // Store the raw exception object for potential debugging and introspection
-        this._lastCapturedException = ex;
-
-        // TraceKit.report will re-raise any exception passed to it,
-        // which means you have to wrap it in try/catch. Instead, we
-        // can wrap it here and only re-raise if TraceKit.report
-        // raises an exception different from the one we asked to
-        // report on.
         try {
-            var stack = TraceKit.computeStackTrace(ex);
+            let stack = TraceKit.computeStackTrace(ex);
             this._handleOnErrorStackInfo(stack, options);
         } catch(ex1) {
             if(ex !== ex1) {
                 throw ex1;
             }
         }
-
         return this;
     }
 }

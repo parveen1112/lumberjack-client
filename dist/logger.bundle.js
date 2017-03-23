@@ -92,44 +92,27 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Base = function () {
-    function Base(stackInfo, options) {
+    function Base(stackInfo) {
         _classCallCheck(this, Base);
 
-        this.name = stackInfo.name;
-        this.mode = stackInfo.mode;
-        this.message = stackInfo.message;
+        this.name = stackInfo.name || '';
+        this.mode = stackInfo.mode || '';
+        this.message = stackInfo.message || '';
         this.frames = [];
-        this.setFrames(stackInfo.stack).options(options);
     }
 
     _createClass(Base, [{
-        key: '_normalizeFrame',
-        value: function _normalizeFrame(frame) {
-            if (!frame.url) return;
-            return {
-                filename: frame.url,
-                lineno: frame.line,
-                colno: frame.column,
-                'function': frame.func || '?'
-            };
-        }
-    }, {
-        key: 'setFrames',
-        value: function setFrames(stack) {
-            for (var i = 0; i < stack.length; i++) {
-                var frame = this._normalizeFrame(stack[i]);
-                if (frame) {
-                    this.frames.push(frame);
-                }
-            }
-            return this;
-        }
-    }, {
         key: 'options',
         value: function options(_options) {
             for (var key in _options) {
                 if (_options.hasOwnProperty(key)) this[key] = _options[key];
             }
+            return this;
+        }
+    }, {
+        key: 'setFrames',
+        value: function setFrames(frame) {
+            this.frames.push(frame);
             return this;
         }
     }]);
@@ -204,8 +187,26 @@ var Scheduler = function () {
     }, {
         key: 'entropy',
         value: function entropy(instance) {
-            console.log(instance);
             this.errors.push(instance);
+            if (this.errors.length === this.maxChunkSize) {
+                this.send(this.errors.splice(0, this.maxChunkSize));
+            }
+        }
+    }, {
+        key: 'send',
+        value: function send(errors) {
+            var obj = {
+                data: errors
+            },
+                http = new XMLHttpRequest(),
+                url = this.loggingUrl;
+
+            http.open("POST", url, true);
+
+            //Send the proper header information along with the request
+            http.setRequestHeader("Content-type", "application/json");
+
+            http.send(JSON.stringify(obj));
         }
     }, {
         key: 'error',
@@ -1524,6 +1525,7 @@ var FourXX = function (_Base) {
         var _this = _possibleConstructorReturn(this, (FourXX.__proto__ || Object.getPrototypeOf(FourXX)).call(this, stackInfo, options));
 
         _this.type = '4XX';
+        _this.setFrames(stackInfo);
         return _this;
     }
 
@@ -1559,12 +1561,13 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 var FiveXX = function (_Base) {
     _inherits(FiveXX, _Base);
 
-    function FiveXX(stackInfo, options) {
+    function FiveXX(stackInfo) {
         _classCallCheck(this, FiveXX);
 
-        var _this = _possibleConstructorReturn(this, (FiveXX.__proto__ || Object.getPrototypeOf(FiveXX)).call(this, stackInfo, options));
+        var _this = _possibleConstructorReturn(this, (FiveXX.__proto__ || Object.getPrototypeOf(FiveXX)).call(this, stackInfo));
 
         _this.type = '5XX';
+        _this.setFrames(stackInfo);
         return _this;
     }
 
@@ -1611,9 +1614,8 @@ var Factory = function () {
     _createClass(Factory, [{
         key: 'getInstance',
         value: function getInstance(stackInfo, options) {
-            console.log(stackInfo);
             var instance = void 0,
-                type = /^(?:[Uu]ncaught (?:exception: )?)?(?:((?:Eval|Internal|Range|Reference|Syntax|Type|URI|)Error): )?(.*)$/.test(stackInfo.name) ? 'js' : stackInfo.name;
+                type = /^([Uu]ncaught exception)|((Eval|Internal|Range|Reference|Syntax|Type|URI|)Error)$/.test(stackInfo.name) ? 'js' : stackInfo.name;
             switch (type) {
                 case '4xx':
                     instance = new _xx2.default(stackInfo, options);
@@ -1623,7 +1625,7 @@ var Factory = function () {
                     break;
                 case 'js':
                     instance = new _jsError2.default(stackInfo, options);
-
+                    break;
                 default:
                     break;
             }
@@ -1648,6 +1650,8 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
 var _baseError = __webpack_require__(0);
 
 var _baseError2 = _interopRequireDefault(_baseError);
@@ -1666,11 +1670,36 @@ var JSError = function (_Base) {
     function JSError(stackInfo, options) {
         _classCallCheck(this, JSError);
 
-        var _this = _possibleConstructorReturn(this, (JSError.__proto__ || Object.getPrototypeOf(JSError)).call(this, stackInfo, options));
+        var _this = _possibleConstructorReturn(this, (JSError.__proto__ || Object.getPrototypeOf(JSError)).call(this, stackInfo));
 
         _this.type = 'JS';
+        _this.setFrames(stackInfo.stack).options(options);
         return _this;
     }
+
+    _createClass(JSError, [{
+        key: '_normalizeFrame',
+        value: function _normalizeFrame(frame) {
+            if (!frame.url) return;
+            return {
+                filename: frame.url,
+                lineno: frame.line,
+                colno: frame.column,
+                'function': frame.func || '?'
+            };
+        }
+    }, {
+        key: 'setFrames',
+        value: function setFrames(stack) {
+            for (var i = 0; i < stack.length; i++) {
+                var frame = this._normalizeFrame(stack[i]);
+                if (frame) {
+                    this.frames.push(frame);
+                }
+            }
+            return this;
+        }
+    }]);
 
     return JSError;
 }(_baseError2.default);
@@ -1762,9 +1791,11 @@ var Logger = function () {
     }, {
         key: 'subscribeAjaxRequest',
         value: function subscribeAjaxRequest() {
+            var _this2 = this;
+
             var self = this;
-            events.on('error', function (data) {
-                console.log(data);
+            events.on('error', function (error) {
+                _this2._handleAjaxErrors(error);
             });
             if ('XMLHttpRequest' in this.window) {
                 var xhrproto = XMLHttpRequest.prototype;
@@ -1835,26 +1866,16 @@ var Logger = function () {
             this.scheduler.error(stackInfo, options);
         }
     }, {
+        key: '_handleAjaxErrors',
+        value: function _handleAjaxErrors(error) {
+            var status = error.status_code,
+                type = /4\d{2}/.test(status) ? '4xx' : /5\d{2}/.test(status) ? '5xx' : '5xx';
+            error.name = type;
+            this.scheduler.error(error);
+        }
+    }, {
         key: 'captureError',
         value: function captureError(ex, options) {
-            // If not an Error is passed through, recall as a message instead
-            /*
-                    if (!isError(ex)) {
-                        return this.captureMessage(ex, objectMerge({
-                            trimHeadFrames: 1,
-                            stacktrace: true // if we fall back to captureMessage, default to attempting a new trace
-                        }, options));
-                    }
-            */
-
-            // Store the raw exception object for potential debugging and introspection
-            this._lastCapturedException = ex;
-
-            // TraceKit.report will re-raise any exception passed to it,
-            // which means you have to wrap it in try/catch. Instead, we
-            // can wrap it here and only re-raise if TraceKit.report
-            // raises an exception different from the one we asked to
-            // report on.
             try {
                 var stack = _tracekit2.default.computeStackTrace(ex);
                 this._handleOnErrorStackInfo(stack, options);
@@ -1863,7 +1884,6 @@ var Logger = function () {
                     throw ex1;
                 }
             }
-
             return this;
         }
     }]);

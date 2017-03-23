@@ -2,7 +2,7 @@
 import Base from './base-error';
 export default class JSError extends Base {
     constructor(stackInfo, options) {
-        super();
+        super(stackInfo);
         this.type = 'JS';
         this.setFrames(stackInfo.stack).options(options);
     }
