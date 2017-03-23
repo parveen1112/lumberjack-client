@@ -1,14 +1,13 @@
+"use strict";
+
 (function(window, Logger, $){
-    var Logger = new Logger();
+    var Logger = new Logger({});
     Logger.install();
-    try {
-        var x = 1;
-        x.opt();
-    } catch (e) {
-        Logger.captureError(e);
-    }
+    var x = [2];
     //x.opt();
     $.ajax({
-        url:'/asd'
-    })
+        url:'http://www.jabong.com/pe/hair-care/.ulenscale.320x320.jpg',
+        success :function(){console.log("hello")},
+        error: function(err, b, c){console.log('AjaxError', err, b, c)}
+    });
 })(window, Logger, jQuery);
