@@ -42,12 +42,10 @@ export default class Scheduler{
         this.errors.push(instance);
         if (sendRequestInstantly) {
             this.send(this.errors.splice(0, this.errors.length));
-            console.log('Instant');
         } else {
             if(this.errors.length === this.maxChunkSize) {
                 this.send(this.errors.splice(0, this.maxChunkSize));
             }
-            console.log('Chunk');
         }
     }
 

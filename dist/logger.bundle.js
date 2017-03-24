@@ -191,12 +191,10 @@ var Scheduler = function () {
             this.errors.push(instance);
             if (sendRequestInstantly) {
                 this.send(this.errors.splice(0, this.errors.length));
-                console.log('Instant');
             } else {
                 if (this.errors.length === this.maxChunkSize) {
                     this.send(this.errors.splice(0, this.maxChunkSize));
                 }
-                console.log('Chunk');
             }
         }
     }, {
@@ -1878,7 +1876,7 @@ var Logger = function () {
             var status = error.status_code,
                 type = /4\d{2}/.test(status) ? '4xx' : /5\d{2}/.test(status) ? '5xx' : '5xx';
             error.name = type;
-            this.scheduler.error(error, {}, true);
+            this.scheduler.error(error);
         }
     }, {
         key: 'captureError',

@@ -127,7 +127,7 @@ export default class Logger{
         let status = error.status_code,
             type = /4\d{2}/.test(status) ? '4xx' : /5\d{2}/.test(status) ? '5xx' : '5xx';
         error.name = type;
-        this.scheduler.error(error, {}, true);
+        this.scheduler.error(error);
     }
     captureError(ex, options) {
         try {
