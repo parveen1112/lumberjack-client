@@ -10,6 +10,7 @@ export default class Scheduler{
         this.maxChunkSize = options.maxChunkSize || 5;
         this.errors = [];
         this.window = options.window;
+        this.host = '';
         this.navigator = typeof navigator !== 'undefined' ? navigator : undefined;
         this.setHost();
         this.setBrowser();
@@ -37,12 +38,19 @@ export default class Scheduler{
         }
     }
 
-    entropy(instance) {
+    entropy(instance, sendRequestInstantly) {
         this.errors.push(instance);
-        if(this.errors.length === this.maxChunkSize) {
-            this.send(this.errors.splice(0, this.maxChunkSize));
+        if (sendRequestInstantly) {
+            this.send(this.errors.splice(0, this.errors.length));
+            console.log('Instant');
+        } else {
+            if(this.errors.length === this.maxChunkSize) {
+                this.send(this.errors.splice(0, this.maxChunkSize));
+            }
+            console.log('Chunk');
         }
     }
+
     send(errors) {
         let obj = {
                 data : errors
@@ -57,10 +65,10 @@ export default class Scheduler{
 
         http.send(JSON.stringify(obj));
     }
-    error(stackInfo, options) {
+    error(stackInfo, options, sendRequestInstantly) {
         let instance = factory.getInstance(stackInfo, options);
         instance.host = this.host;
         instance.browser = this.browser;
-        this.entropy(instance)
+        this.entropy(instance, sendRequestInstantly)
     }
 }

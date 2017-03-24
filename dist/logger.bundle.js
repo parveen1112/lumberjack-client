@@ -154,6 +154,7 @@ var Scheduler = function () {
         this.maxChunkSize = options.maxChunkSize || 5;
         this.errors = [];
         this.window = options.window;
+        this.host = '';
         this.navigator = typeof navigator !== 'undefined' ? navigator : undefined;
         this.setHost();
         this.setBrowser();
@@ -186,10 +187,16 @@ var Scheduler = function () {
         }
     }, {
         key: 'entropy',
-        value: function entropy(instance) {
+        value: function entropy(instance, sendRequestInstantly) {
             this.errors.push(instance);
-            if (this.errors.length === this.maxChunkSize) {
-                this.send(this.errors.splice(0, this.maxChunkSize));
+            if (sendRequestInstantly) {
+                this.send(this.errors.splice(0, this.errors.length));
+                console.log('Instant');
+            } else {
+                if (this.errors.length === this.maxChunkSize) {
+                    this.send(this.errors.splice(0, this.maxChunkSize));
+                }
+                console.log('Chunk');
             }
         }
     }, {
@@ -210,11 +217,11 @@ var Scheduler = function () {
         }
     }, {
         key: 'error',
-        value: function error(stackInfo, options) {
+        value: function error(stackInfo, options, sendRequestInstantly) {
             var instance = factory.getInstance(stackInfo, options);
             instance.host = this.host;
             instance.browser = this.browser;
-            this.entropy(instance);
+            this.entropy(instance, sendRequestInstantly);
         }
     }]);
 
@@ -1871,7 +1878,7 @@ var Logger = function () {
             var status = error.status_code,
                 type = /4\d{2}/.test(status) ? '4xx' : /5\d{2}/.test(status) ? '5xx' : '5xx';
             error.name = type;
-            this.scheduler.error(error);
+            this.scheduler.error(error, {}, true);
         }
     }, {
         key: 'captureError',
